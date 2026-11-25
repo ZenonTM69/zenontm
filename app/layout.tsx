@@ -1,21 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-// Fonts are downloaded at build time and served from your own site (fast + private).
-const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-const grotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-display", display: "swap" });
+// Fonts: Helvetica, from visitors' own devices (see --font-* in globals.css).
 
 export const metadata: Metadata = {
   title: "ZenonTM",
-  description: "ZenonTM's personal site: music, favourites, photos and socials.",
+  description: "ZenonTM – music, photos and where to find me.",
   metadataBase: new URL("https://zenontm.meme"),
   openGraph: {
     title: "ZenonTM",
-    description: "Music, favourites, photos and socials.",
+    description: "Music, photos and where to find me.",
     url: "https://zenontm.meme",
     siteName: "ZenonTM",
     type: "website",
+    images: [{ url: "/zenontm-logo.svg", width: 1024, height: 1024, alt: "ZenonTM logo" }],
   },
 };
 
@@ -27,7 +25,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${grotesk.variable}`}>
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

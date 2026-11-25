@@ -1,24 +1,21 @@
 // ============================================================
 //  ✏️  EDIT THIS FILE to change the text on your website.
-//  Everything here is PLACEHOLDER content – replace it with your own.
 //  You never need to touch the other code files just to change words.
+//  Text is kept deliberately short – the music and photos say the rest.
 // ============================================================
 
 export const profile = {
   name: "ZenonTM",
   handle: "@zenontm",
-  status: "Online · probably listening to music",
-  // The animated line under your name cycles through these:
-  roles: ["Content creator", "Music obsessive", "Night owl", "Idea collector"],
-  location: "Somewhere on Earth",
-  avatar: "/avatar.svg", // put your photo in /public (e.g. me.jpg) and change this to "/me.jpg"
   domain: "zenontm.meme",
-  // Small fun facts shown in the hero. Change or remove freely.
-  stats: [
-    { value: "24/7", label: "music on" },
-    { value: "120+", label: "playlists" },
-    { value: "∞", label: "late nights" },
-  ],
+  // The photo that overlaps the big ZENONTM title on the homepage.
+  // Put your photo in /public (e.g. /public/me.jpg) and change this to "/me.jpg".
+  // A tall (portrait) photo works best.
+  // A photo with its background removed (transparent) looks best.
+  heroPhoto: "/hero-photo.webp",
+  heroPhotoAlt: "Portrait photo", // a short description of the photo, for screen readers
+  // Optional: a place name shown small in the hero. Leave "" to hide it.
+  location: "",
 };
 
 export type Social = {
@@ -31,6 +28,7 @@ export type Social = {
   // Leave it as "" to hide it. Update it by hand whenever you like.
   followers?: string;
   followersLabel?: string; // e.g. "followers" or "subscribers"
+  live?: boolean; // set automatically when the number comes live from Instagram – don't set by hand
 };
 
 export const socials: Social[] = [
@@ -59,23 +57,17 @@ export const socials: Social[] = [
 // Music: everything in the music section now comes LIVE from your Spotify
 // (see lib/spotify.ts and the README). There is no fake music data any more.
 
-// Gallery: put photos in /public/gallery and add `src: "/gallery/yourphoto.jpg"`.
-// Without `src`, a colourful placeholder is shown. The first photo is shown bigger.
-export type Photo = { caption: string; hue: number; src?: string };
-export const gallery: Photo[] = [
-  { caption: "City lights", hue: 265 },
-  { caption: "Studio session", hue: 215 },
-  { caption: "Golden hour", hue: 300 },
-  { caption: "Road trip", hue: 200 },
-  { caption: "Late night ideas", hue: 250 },
-  { caption: "Festival season", hue: 280 },
-  { caption: "Rooftop", hue: 225 },
-];
+// Gallery: YOUR photos only. Put them in /public/gallery and add one line each, e.g.
+//   { src: "/gallery/beach.jpg", caption: "Beach, June" },
+// Any number works – the layout adapts. Caption is optional. Newest first looks nice.
+// While this list is empty, the gallery shows a small "photos soon" note.
+export type Photo = { src: string; caption?: string };
+export const gallery: Photo[] = [];
 
 export const navLinks = [
   { href: "#home", label: "Home" },
   { href: "#music", label: "Music" },
   { href: "#top", label: "Top" },
-  { href: "#gallery", label: "Gallery" },
-  { href: "#connect", label: "Connect" },
+  { href: "#gallery", label: "Photos" },
+  { href: "#connect", label: "Socials" },
 ];

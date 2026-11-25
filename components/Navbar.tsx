@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { navLinks } from "@/lib/site";
 import Icon from "./Icons";
+import Logo from "./Logo";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function Navbar() {
       <div className="scroll-progress" ref={bar} />
       <div className="nav-inner glass">
         <a href="#home" className="logo" onClick={() => setOpen(false)} aria-label="ZenonTM home">
-          <span className="logo-mark">Z</span>
+          <Logo size={34} className="logo-mark" />
           <span className="logo-text">
             Zenon<span>TM</span>
           </span>
@@ -53,7 +54,7 @@ export default function Navbar() {
             <a
               key={l.href}
               href={l.href}
-              className={active === l.href ? "active" : ""}
+              className={`${active === l.href ? "active" : ""} ${l.href === "#connect" ? "nav-socials" : ""}`}
               aria-current={active === l.href ? "true" : undefined}
               onClick={() => setOpen(false)}
             >

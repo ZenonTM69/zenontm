@@ -13,8 +13,8 @@ export async function getInstagramFollowers(): Promise<number | null> {
   if (!token) return null;
 
   try {
-    const res = await fetch(`${API}/me?fields=username,followers_count`, {
-      headers: { Authorization: `Bearer ${token}` },
+    // Request format as documented by Meta ("Instagram API with Instagram Login", permission instagram_business_basic).
+    const res = await fetch(`${API}/v27.0/me?fields=username,followers_count&access_token=${encodeURIComponent(token)}`, {
       // Ask Instagram at most once an hour; visitors in between get the saved number.
       next: { revalidate: 3600 },
     });

@@ -20,6 +20,7 @@ const filled: Record<string, string> = {
 
 const stroked: Record<string, string> = {
   arrow: "M5 12h14M13 6l6 6-6 6",
+  out: "M7 17L17 7M9 7h8v8",
   up: "M12 19V5M6 11l6-6 6 6",
   menu: "M4 7h16M4 12h16M4 17h16",
   close: "M6 6l12 12M18 6L6 18",

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-// Live clock + date in the visitor's own timezone. Updates every second.
+// Live time + date in the visitor's own timezone, as a compact readout.
 export default function Clock() {
   const [now, setNow] = useState<Date | null>(null);
 
@@ -11,32 +11,18 @@ export default function Clock() {
     return () => clearInterval(id);
   }, []);
 
-  const hh = now ? String(now.getHours()).padStart(2, "0") : "--";
-  const mm = now ? String(now.getMinutes()).padStart(2, "0") : "--";
-  const ss = now ? String(now.getSeconds()).padStart(2, "0") : "--";
-  const date = now
-    ? now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-    : " ";
-  const greeting = !now
-    ? "Hello"
-    : now.getHours() < 5
-      ? "Up late?"
-      : now.getHours() < 12
-        ? "Good morning"
-        : now.getHours() < 18
-          ? "Good afternoon"
-          : "Good evening";
+  const two = (n: number) => String(n).padStart(2, "0");
+  const date = now ? now.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : "";
 
   return (
-    <div className="clock">
-      <span className="clock-label">{greeting}</span>
+    <span className="clock">
       <time className="clock-time" dateTime={now?.toISOString()}>
-        {hh}
+        {now ? `${two(now.getHours())}` : "--"}
         <span className="blink">:</span>
-        {mm}
-        <span className="clock-sec">{ss}</span>
+        {now ? two(now.getMinutes()) : "--"}
+        <span className="clock-sec">{now ? two(now.getSeconds()) : "--"}</span>
       </time>
       <span className="clock-date">{date}</span>
-    </div>
+    </span>
   );
 }

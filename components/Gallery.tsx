@@ -3,25 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { Photo } from "@/lib/site";
 import Icon from "./Icons";
 
-function PhotoFill({ p }: { p: Photo }) {
-  return p.src ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={p.src} alt={p.caption} loading="lazy" />
-  ) : (
-    <div
-      className="photo-ph"
-      role="img"
-      aria-label={`${p.caption} (placeholder)`}
-      style={{
-        background: `radial-gradient(circle at 25% 20%, hsl(${p.hue} 90% 65% / .9), transparent 55%),
-                     radial-gradient(circle at 80% 85%, hsl(${p.hue + 70} 90% 50% / .8), transparent 50%),
-                     hsl(${p.hue} 60% 14%)`,
-      }}
-    />
-  );
-}
-
-// Photo grid. Click a photo to open it full-screen; use arrow keys or Esc.
+// Photo grid. Works with any number of photos (layout changes with the count).
+// Click/tap a photo to view it full-screen; arrow keys or the buttons move between photos, Esc closes.
 export default function Gallery({ photos }: { photos: Photo[] }) {
   const [open, setOpen] = useState<number | null>(null);
   const close = useCallback(() => setOpen(null), []);
@@ -45,40 +28,58 @@ export default function Gallery({ photos }: { photos: Photo[] }) {
     };
   }, [open, close, step]);
 
+  if (photos.length === 0) {
+    return (
+      <div className="gallery-empty">
+        <span className="ge-frame" aria-hidden="true" />
+        <p>No photos up yet.</p>
+      </div>
+    );
+  }
+
+  const layout = photos.length >= 5 ? "feature" : `n${photos.length}`;
+  const current = open !== null ? photos[open] : null;
+
   return (
     <>
-      <div className="gallery">
+      <div className="gallery" data-layout={layout}>
         {photos.map((p, i) => (
-          <button key={p.caption} className="photo" onClick={() => setOpen(i)} aria-label={`Open photo: ${p.caption}`}>
-            <PhotoFill p={p} />
+          <button key={p.src} className="photo" onClick={() => setOpen(i)} aria-label={`Open photo${p.caption ? `: ${p.caption}` : ` ${i + 1}`}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.src} alt={p.caption ?? ""} loading="lazy" />
             <span className="photo-cap">
-              {p.caption}
-              <Icon name="expand" size={16} />
+              <span className="photo-idx">{String(i + 1).padStart(2, "0")}</span>
+              {p.caption && <span>{p.caption}</span>}
             </span>
           </button>
         ))}
       </div>
 
-      {open !== null && (
-        <div className="lightbox" role="dialog" aria-modal="true" aria-label={photos[open].caption} onClick={close}>
+      {current && open !== null && (
+        <div className="lightbox" role="dialog" aria-modal="true" aria-label={current.caption ?? `Photo ${open + 1}`} onClick={close}>
           <button className="lb-btn lb-close" onClick={close} aria-label="Close">
             <Icon name="close" />
           </button>
-          <button className="lb-btn lb-prev" onClick={(e) => { e.stopPropagation(); step(-1); }} aria-label="Previous photo">
-            <Icon name="left" />
-          </button>
+          {photos.length > 1 && (
+            <button className="lb-btn lb-prev" onClick={(e) => { e.stopPropagation(); step(-1); }} aria-label="Previous photo">
+              <Icon name="left" />
+            </button>
+          )}
           <figure className="lb-figure" onClick={(e) => e.stopPropagation()} key={open}>
-            <PhotoFill p={photos[open]} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={current.src} alt={current.caption ?? ""} />
             <figcaption>
-              {photos[open].caption}
+              {current.caption ?? ""}
               <span>
                 {open + 1} / {photos.length}
               </span>
             </figcaption>
           </figure>
-          <button className="lb-btn lb-next" onClick={(e) => { e.stopPropagation(); step(1); }} aria-label="Next photo">
-            <Icon name="right" />
-          </button>
+          {photos.length > 1 && (
+            <button className="lb-btn lb-next" onClick={(e) => { e.stopPropagation(); step(1); }} aria-label="Next photo">
+              <Icon name="right" />
+            </button>
+          )}
         </div>
       )}
     </>
