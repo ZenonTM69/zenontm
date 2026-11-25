@@ -18,7 +18,8 @@ const KINDS = [
 type Kind = (typeof KINDS)[number]["id"];
 
 type TopRes = {
-  state: "ok" | "not_connected" | "reconnect" | "error";
+  state: "ok" | "not_connected" | "reconnect" | "busy" | "error";
+  retryAt?: string;
   items: (SpotifyTrack | SpotifyArtist)[];
 };
 
@@ -55,7 +56,7 @@ export default function TopCharts() {
     };
   }, [key, kind, range, cache]);
 
-  if (data && data.state !== "ok") return <Offline state={data.state} />;
+  if (data && data.state !== "ok") return <Offline state={data.state} retryAt={data.retryAt} />;
 
   return (
     <div className="glass spot charts">

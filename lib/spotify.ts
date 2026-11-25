@@ -10,6 +10,10 @@
 //    user-read-currently-playing, user-read-recently-played, user-top-read
 // ============================================================
 
+import { readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const API = "https://api.spotify.com/v1";
 
@@ -19,10 +23,11 @@ export const SPOTIFY_SCOPES = [
   "user-top-read",
 ];
 
-export type SpotifyState = "ok" | "not_connected" | "reconnect" | "error";
+export type SpotifyState = "ok" | "not_connected" | "reconnect" | "busy" | "error";
 
 export class SpotifyError extends Error {
-  constructor(public state: Exclude<SpotifyState, "ok">) {
+  // until = when Spotify says we may ask again (only for "busy")
+  constructor(public state: Exclude<SpotifyState, "ok">, public until?: number) {
     super(state);
   }
 }
@@ -128,7 +133,26 @@ async function accessToken(): Promise<string> {
   return cached.token;
 }
 
+// If Spotify says "too many requests" (HTTP 429) it also says how long to wait.
+// We obey that and don't ask again until the wait is over – asking anyway makes the wait longer.
+// The wait is also saved to a small temporary file, so a restart of the site doesn't forget it
+// and accidentally ask again (which could make Spotify's wait even longer).
+const BLOCK_FILE = join(tmpdir(), "zenontm-spotify-wait.json");
+const blockedUntil = new Map<string, number>();
+try {
+  const saved = JSON.parse(readFileSync(BLOCK_FILE, "utf8")) as Record<string, number>;
+  for (const [k, v] of Object.entries(saved)) if (v > Date.now()) blockedUntil.set(k, v);
+} catch {}
+function saveBlocks() {
+  try {
+    writeFileSync(BLOCK_FILE, JSON.stringify(Object.fromEntries(blockedUntil)));
+  } catch {}
+}
+
 async function spotifyGet<T>(path: string, retry = true): Promise<T | null> {
+  const endpoint = path.split("?")[0];
+  const until = blockedUntil.get(endpoint) ?? 0;
+  if (until > Date.now()) throw new SpotifyError("busy", until);
   const token = await accessToken();
   const res = await fetch(`${API}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -139,8 +163,16 @@ async function spotifyGet<T>(path: string, retry = true): Promise<T | null> {
     cached = null;
     return spotifyGet<T>(path, false);
   }
+  if (res.status === 429) {
+    const wait = Number(res.headers.get("retry-after")) || 60;
+    const until = Date.now() + wait * 1000;
+    blockedUntil.set(endpoint, until);
+    saveBlocks();
+    console.warn(`Spotify asked us to slow down on ${endpoint} for ${Math.round(wait / 60)} min.`);
+    throw new SpotifyError("busy", until);
+  }
   if (!res.ok) {
-    console.warn(`Spotify request ${path.split("?")[0]} failed (HTTP ${res.status}).`);
+    console.warn(`Spotify request ${endpoint} failed (HTTP ${res.status}).`);
     throw new SpotifyError("error");
   }
   return (await res.json()) as T;
@@ -220,23 +252,61 @@ export async function getNowPlaying(): Promise<NowPlaying> {
   };
 }
 
+// Keeps answers that change slowly in memory, so repeat visits don't ask Spotify again.
+// If Spotify is unavailable, the last real answer is shown instead of nothing.
+const memo = new Map<string, { at: number; value: unknown }>();
+async function remember<T>(key: string, maxAgeMs: number, load: () => Promise<T>): Promise<T> {
+  const hit = memo.get(key);
+  if (hit && Date.now() - hit.at < maxAgeMs) return hit.value as T;
+  try {
+    const value = await load();
+    memo.set(key, { at: Date.now(), value });
+    return value;
+  } catch (err) {
+    if (hit) return hit.value as T;
+    throw err;
+  }
+}
+
 export async function getRecentlyPlayed(limit = 20) {
+  return remember(`recent:${limit}`, 60_000, () => loadRecentlyPlayed(limit));
+}
+async function loadRecentlyPlayed(limit: number) {
   const data = await spotifyGet<{ items: { track: RawTrack; played_at: string }[] }>(
     `/me/player/recently-played?limit=${Math.min(Math.max(limit, 1), 50)}`
   );
   return (data?.items ?? []).map((i) => ({ track: toTrack(i.track), playedAt: i.played_at }));
 }
 
+const HOUR = 3_600_000;
 export async function getTopTracks(range: TimeRange, limit = 10) {
+  return remember(`tracks:${range}:${limit}`, HOUR, () => loadTopTracks(range, limit));
+}
+async function loadTopTracks(range: TimeRange, limit: number) {
   const data = await spotifyGet<{ items: RawTrack[] }>(`/me/top/tracks?time_range=${range}&limit=${limit}`);
   return (data?.items ?? []).map(toTrack);
 }
 
 export async function getTopArtists(range: TimeRange, limit = 10) {
+  return remember(`artists:${range}:${limit}`, HOUR, () => loadTopArtists(range, limit));
+}
+async function loadTopArtists(range: TimeRange, limit: number) {
   const data = await spotifyGet<{ items: RawArtist[] }>(`/me/top/artists?time_range=${range}&limit=${limit}`);
   return (data?.items ?? []).map(toArtist);
 }
 
 export function stateOf(err: unknown): Exclude<SpotifyState, "ok"> {
   return err instanceof SpotifyError ? err.state : "error";
+}
+
+/** Extra info for an error reply: when Spotify said we can try again (ISO time), if known. */
+export function errorInfo(err: unknown) {
+  const state = stateOf(err);
+  const until = err instanceof SpotifyError ? err.until : undefined;
+  return until ? { state, retryAt: new Date(until).toISOString() } : { state };
+}
+/** How long Vercel may cache an error reply: until Spotify's wait ends (max 1 hour), else 30 s. */
+export function errorCacheSeconds(err: unknown) {
+  const until = err instanceof SpotifyError ? err.until : undefined;
+  return until ? Math.max(30, Math.min(3600, Math.round((until - Date.now()) / 1000))) : 30;
 }

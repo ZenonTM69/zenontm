@@ -14,7 +14,11 @@ export default function LiveStatus() {
     const load = () =>
       fetch("/api/spotify/now-playing")
         .then((r) => r.json() as Promise<Res>)
-        .then(setNow)
+        .then((d) => {
+          setNow(d);
+          // share the song with the stickers so they don't ask Spotify again
+          window.dispatchEvent(new CustomEvent("zt-nowplaying", { detail: d }));
+        })
         .catch(() => setNow(null));
     load();
     const id = setInterval(() => !document.hidden && load(), 30_000);

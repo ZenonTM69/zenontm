@@ -2,20 +2,31 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SpotifyTrack } from "@/lib/spotify";
 import Icon from "./Icons";
+import DitherCover from "./DitherCover";
+import ScratchVinyl from "./ScratchVinyl";
 
 // Live "Now playing" + "Recently played", using REAL data from your Spotify
 // (through this site's own /api/spotify/... routes, so no secrets reach the browser).
 // When Spotify isn't connected it says so – it never shows made-up songs.
 
 type NowPlayingRes = {
-  state: "ok" | "not_connected" | "reconnect" | "error";
+  state: "ok" | "not_connected" | "reconnect" | "busy" | "error";
   playing?: boolean;
   isPlaying?: boolean;
   progressMs?: number;
   track?: SpotifyTrack;
+  retryAt?: string;
 };
 type RecentItem = { track: SpotifyTrack; playedAt: string };
-type RecentRes = { state: NowPlayingRes["state"]; items: RecentItem[] };
+type RecentRes = { state: NowPlayingRes["state"]; items: RecentItem[]; retryAt?: string };
+
+// "around 22:55" in the visitor's own time
+export function backAround(retryAt?: string) {
+  if (!retryAt) return "";
+  const d = new Date(retryAt);
+  if (isNaN(d.getTime()) || d.getTime() < Date.now()) return "";
+  return ` It'll be back around ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`;
+}
 
 const fmt = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -53,7 +64,7 @@ export function Equalizer({ playing }: { playing: boolean }) {
   );
 }
 
-export function Offline({ state }: { state: NowPlayingRes["state"] }) {
+export function Offline({ state, retryAt }: { state: NowPlayingRes["state"]; retryAt?: string }) {
   return (
     <div className="glass spot offline">
       <span className="offline-icon">
@@ -61,7 +72,13 @@ export function Offline({ state }: { state: NowPlayingRes["state"] }) {
       </span>
       <div>
         <h3>{state === "not_connected" ? "Spotify isn't connected yet" : "Live Spotify data is unavailable right now"}</h3>
-        <p>{state === "not_connected" ? "Real listening activity will appear here once it's set up." : "Please check back a little later."}</p>
+        <p>
+          {state === "not_connected"
+            ? "Real listening activity will appear here once it's set up."
+            : state === "busy"
+            ? "Spotify has asked the site to wait a bit before checking again." + (backAround(retryAt) || " It'll be back on its own.")
+            : "Please check back a little later."}
+        </p>
       </div>
     </div>
   );
@@ -123,7 +140,7 @@ export default function SpotifyCard() {
   }, [ticking, duration, loadNow]);
 
   if (!now) return <div className="spotify-grid"><div className="glass skeleton player-skel" /><div className="glass skeleton recent-skel" /></div>;
-  if (now.state !== "ok") return <Offline state={now.state} />;
+  if (now.state !== "ok") return <Offline state={now.state} retryAt={now.retryAt} />;
 
   const track = now.playing ? now.track! : recent?.items[0]?.track;
   const isLive = Boolean(now.playing);
@@ -145,8 +162,12 @@ export default function SpotifyCard() {
         {track ? (
           <div className="player-body">
             <div className={`vinyl-wrap ${ticking ? "is-playing" : ""}`}>
-              <div className="vinyl" style={{ ["--label" as string]: track.image ? `center / cover url(${track.image})` : "var(--grad)" }} />
-              <Cover src={track.image} size={200} alt={`${track.album} cover`} className="cover" key={track.id} />
+              <ScratchVinyl label={track.image ? `center / cover url(${track.image})` : "var(--grad)"} />
+              {track.image ? (
+                <DitherCover src={track.image} size={200} alt={`${track.album} cover`} playing={Boolean(isLive && now.isPlaying)} className="cover" key={track.id} />
+              ) : (
+                <Cover src={null} size={200} alt={`${track.album} cover`} className="cover" />
+              )}
             </div>
 
             <div className="player-info">
@@ -176,7 +197,7 @@ export default function SpotifyCard() {
             </div>
           </div>
         ) : (
-          <p className="player-empty">Nothing played recently.</p>
+          <p className="player-empty">{recent && recent.state !== "ok" ? "Nothing playing right now." : "Nothing played recently."}</p>
         )}
       </article>
 
@@ -187,6 +208,12 @@ export default function SpotifyCard() {
         </div>
         {!recent ? (
           <div className="skeleton-lines">{Array.from({ length: 6 }, (_, i) => <span key={i} />)}</div>
+        ) : recent.state !== "ok" ? (
+          <p className="recent-note">
+            {recent.state === "busy"
+              ? "Spotify has paused this list for a while." + (backAround(recent.retryAt) || " It'll be back on its own.")
+              : "Recent plays can't be loaded right now."}
+          </p>
         ) : recent.items.length === 0 ? (
           <p className="recent-note">No recent plays to show.</p>
         ) : (

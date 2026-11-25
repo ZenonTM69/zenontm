@@ -10,10 +10,24 @@ import SocialBar from "@/components/SocialBar";
 import HeroTitle from "@/components/HeroTitle";
 import LiveStatus from "@/components/LiveStatus";
 import Logo from "@/components/Logo";
+import IntroSound from "@/components/IntroSound";
+import Stickers from "@/components/Stickers";
+import BigTitle from "@/components/BigTitle";
+import Magnetic from "@/components/Magnetic";
+import EasterEgg from "@/components/EasterEgg";
+import Preloader from "@/components/Preloader";
+import HeroDepth from "@/components/HeroDepth";
+import ClickBurst from "@/components/ClickBurst";
+import SmartCursor from "@/components/SmartCursor";
+import HoverSounds from "@/components/HoverSounds";
+import Tools from "@/components/Tools";
+import DrinkChase from "@/components/DrinkChase";
 import Icon from "@/components/Icons";
-import { profile, socials as baseSocials, gallery } from "@/lib/site";
+import { profile, socials as baseSocials, gallery, drink } from "@/lib/site";
 import { getInstagramFollowers, formatCount } from "@/lib/instagram";
-import { getTopArtists, spotifyConfigured } from "@/lib/spotify";
+import { getTopArtists, getTopTracks, spotifyConfigured, type SpotifyArtist, type SpotifyTrack } from "@/lib/spotify";
+import AlbumWall, { type WallItem } from "@/components/AlbumWall";
+import TastePoster, { topGenres } from "@/components/TastePoster";
 
 // Rebuild this page in the background at most once an hour (keeps counts and the artist banner fresh).
 export const revalidate = 3600;
@@ -30,18 +44,34 @@ function SectionHead({ title, text }: { title: string; text?: string }) {
   );
 }
 
-// Real top artists (last 6 months) for the scrolling banner. Empty = banner hidden.
-async function bannerArtists(): Promise<string[]> {
-  if (!spotifyConfigured()) return [];
-  try {
-    return (await getTopArtists("medium_term", 12)).map((a) => a.name);
-  } catch {
-    return [];
-  }
+// Real top artists + tracks (last 6 months), fetched at most once an hour.
+// Used for the scrolling banner, the taste poster and the album wall. Empty = those parts hide.
+async function topMusic(): Promise<{ artists: SpotifyArtist[]; tracks: SpotifyTrack[] }> {
+  if (!spotifyConfigured()) return { artists: [], tracks: [] };
+  const [artists, tracks] = await Promise.all([
+    getTopArtists("medium_term", 50).catch(() => [] as SpotifyArtist[]),
+    getTopTracks("medium_term", 50).catch(() => [] as SpotifyTrack[]),
+  ]);
+  return { artists, tracks };
 }
 
 export default async function Home() {
-  const [igFollowers, artists] = await Promise.all([getInstagramFollowers(), bannerArtists()]);
+  const [igFollowers, top] = await Promise.all([getInstagramFollowers(), topMusic()]);
+  const artists = top.artists.slice(0, 12).map((a) => a.name);
+  // Taste poster: most common genres, or top artist names if Spotify gives no genres
+  const genres = topGenres(top.artists);
+  const posterMode = genres.length >= 3 ? "genres" : "artists";
+  const posterRows = posterMode === "genres" ? genres : top.artists.slice(0, 8).map((a) => a.name);
+  // Album wall: one tile per album (no repeats), up to 20
+  const seen = new Set<string>();
+  const wall: WallItem[] = [];
+  for (const t of top.tracks) {
+    const img = t.thumb ?? t.image;
+    if (!img || seen.has(t.album + img)) continue;
+    seen.add(t.album + img);
+    wall.push({ key: t.id, image: img, album: t.album, artists: t.artists, url: t.url });
+    if (wall.length === 20) break;
+  }
   // Instagram's number is only ever shown when it really came from Instagram (marked "live").
   const socials = baseSocials.map((s) =>
     s.icon === "instagram" && igFollowers !== null ? { ...s, followers: formatCount(igFollowers), live: true } : s
@@ -49,30 +79,56 @@ export default async function Home() {
 
   return (
     <>
+      <Preloader />
+      {/* Without JavaScript: no loading screen, and nothing waits for it */}
+      <noscript>
+        <style>{".preloader{display:none!important}*{animation-play-state:running!important}"}</style>
+      </noscript>
       <Background />
       <Navbar />
+      <IntroSound />
+      <Magnetic />
+      <EasterEgg />
+      <HeroDepth />
+      <ClickBurst />
+      <HoverSounds />
+      <Tools />
+      <DrinkChase />
+      <SmartCursor />
 
       <main>
         {/* ================= HOME ================= */}
         <section id="home" className="hero">
-          <Reveal>
-            <div className="hero-meta">
+          {/* The opening plays once on load (pure CSS, see "OPENING" in globals.css) */}
+          <div className="hero-block">
+            <div className="hero-meta intro-meta">
               <span className="hm-label">{profile.domain}</span>
               <Clock />
               {profile.location && <span className="hm-label">{profile.location}</span>}
             </div>
-          </Reveal>
+          </div>
 
-          <Reveal delay={80}>
+          <div className="hero-block hero-block-title">
             <HeroTitle photo={profile.heroPhoto} photoAlt={profile.heroPhotoAlt} />
-          </Reveal>
+          </div>
 
-          <Reveal delay={200}>
+          <div className="hero-block">
             <div className="hero-foot">
+              {profile.status && (
+                <p className="status-line">
+                  <span>CURRENTLY</span> {profile.status}
+                </p>
+              )}
               <LiveStatus />
               <SocialBar socials={socials} />
             </div>
-          </Reveal>
+          </div>
+
+          <Stickers />
+
+          <a href="#music" className="scroll-cue" aria-label="Scroll down">
+            <span />
+          </a>
         </section>
 
         {/* Scrolling banner of my real top artists (only shown when Spotify is connected) */}
@@ -96,6 +152,34 @@ export default async function Home() {
           </Reveal>
         </section>
 
+        {/* ================= BUY ME A DRINK ================= */}
+        <section id="drink" className="section">
+          <Reveal>
+            <div className="drink glass">
+              <div className="drink-cup" aria-hidden="true">
+                <Icon name="glass" size={44} />
+                <i /><i /><i /><i />
+              </div>
+              <div className="drink-text">
+                <h2>Buy me a drink</h2>
+                <p>If you've enjoyed anything here, you can buy me a drink. Completely optional, and thank you.</p>
+              </div>
+              <a className="revolut-btn" href={drink.url} target="_blank" rel="noopener noreferrer" aria-label={`Buy me a drink: send ${drink.amountLabel} on Revolut (opens in a new tab)`}>
+                <span className="rv-badge">
+                  <Icon name="revolut" size={19} />
+                </span>
+                <span className="rv-text">
+                  <strong>Send with Revolut</strong>
+                  <small>{drink.amountLabel} · opens Revolut</small>
+                </span>
+                <span className="rv-go">
+                  <Icon name="out" size={16} />
+                </span>
+              </a>
+            </div>
+          </Reveal>
+        </section>
+
         {/* ================= TOP ================= */}
         <section id="top" className="section">
           <SectionHead title="My top music" text="Switch the time period to compare." />
@@ -103,6 +187,21 @@ export default async function Home() {
             <TopCharts />
           </Reveal>
         </section>
+
+        {/* ================= TASTE (poster + album wall) ================= */}
+        {(posterRows.length > 0 || wall.length > 0) && (
+          <section id="taste" className="section">
+            <SectionHead title="My music taste" text="Made live from my Spotify. Hover the covers." />
+            <div className="taste-grid">
+              <Reveal>
+                <TastePoster rows={posterRows} mode={posterMode} />
+              </Reveal>
+              <Reveal delay={120}>
+                <AlbumWall items={wall} />
+              </Reveal>
+            </div>
+          </section>
+        )}
 
         {/* ================= PHOTOS ================= */}
         <section id="gallery" className="section">
@@ -123,9 +222,11 @@ export default async function Home() {
             ))}
           </div>
         </section>
+
       </main>
 
       <footer className="footer">
+        <BigTitle />
         <div className="footer-inner">
           <a href="#home" className="footer-logo" aria-label="Back to the top">
             <Logo size={40} />

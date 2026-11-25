@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import PhotoRipple from "./PhotoRipple";
 
 // The giant ZENONTM title with the cut-out photo standing in front of it.
 // On a computer, letters near the mouse lift up (turned off for people who prefer reduced motion).
@@ -42,13 +43,12 @@ export default function HeroTitle({ photo, photoAlt }: { photo: string; photoAlt
     <div className="hero-title" ref={ref}>
       <h1 className="ht-solid" aria-label="ZenonTM">
         {TEXT.split("").map((c, i) => (
-          <span key={i} aria-hidden="true" className={`ht-l${i >= 5 ? " ht-tm" : ""}`} style={{ transform: `translateY(var(--l${i}, 0px))` }}>
+          <span key={i} aria-hidden="true" className={`ht-l${i >= 5 ? " ht-tm" : ""}`} style={{ transform: `translateY(var(--l${i}, 0px)) rotate(calc(var(--fr, 0deg) * var(--q, 0)))`, ["--n" as string]: i }}>
             {c}
           </span>
         ))}
       </h1>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="ht-photo" src={photo} alt={photoAlt} />
+      <PhotoRipple src={photo} alt={photoAlt} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { getTopArtists, getTopTracks, stateOf, TIME_RANGES, type TimeRange } from "@/lib/spotify";
+import { getTopArtists, getTopTracks, errorInfo, errorCacheSeconds, TIME_RANGES, type TimeRange } from "@/lib/spotify";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +20,8 @@ export async function GET(request: Request) {
     );
   } catch (err) {
     return Response.json(
-      { state: stateOf(err), type, range, items: [] },
-      { headers: { "Cache-Control": "public, s-maxage=60" } }
+      { ...errorInfo(err), type, range, items: [] },
+      { headers: { "Cache-Control": `public, s-maxage=${errorCacheSeconds(err)}` } }
     );
   }
 }

@@ -1,4 +1,4 @@
-import { getRecentlyPlayed, stateOf } from "@/lib/spotify";
+import { getRecentlyPlayed, errorInfo, errorCacheSeconds } from "@/lib/spotify";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,6 @@ export async function GET() {
       { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
     );
   } catch (err) {
-    return Response.json({ state: stateOf(err), items: [] }, { headers: { "Cache-Control": "public, s-maxage=30" } });
+    return Response.json({ ...errorInfo(err), items: [] }, { headers: { "Cache-Control": `public, s-maxage=${errorCacheSeconds(err)}` } });
   }
 }
