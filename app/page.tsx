@@ -203,9 +203,9 @@ export default async function Home() {
           </section>
         )}
 
-        {/* ================= PHOTOS ================= */}
+        {/* ================= GALLERY (photos + videos) ================= */}
         <section id="gallery" className="section">
-          <SectionHead title="Photos" />
+          <SectionHead title="Gallery" />
           <Reveal className="reveal-wipe">
             <Gallery photos={gallery} />
           </Reveal>

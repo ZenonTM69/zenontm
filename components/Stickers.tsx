@@ -55,6 +55,17 @@ const DEFS: Def[] = [
   { id: "sam", at: [1.0, 0.72], atPhone: [0, 0], rot: 6, cls: "stk-photo stk-sam", node: <Pic src="/stickers/sam.webp" w={560} h={313} /> },
   { id: "cat", at: [0.13, 0.0], atPhone: [0.62, 0.0], rot: 9, cls: "stk-photo stk-cat", node: <Pic src="/stickers/cat.webp" w={318} h={440} />, phone: true },
   { id: "brain", at: [0.8, 0.0], atPhone: [0, 0], rot: -5, cls: "stk-photo stk-brain", node: <Pic src="/stickers/brain.webp" w={440} h={304} /> },
+  // meme pack #2
+  { id: "boomcat", at: [0.01, 0.5], atPhone: [0, 0], rot: -4, cls: "stk-photo stk-boomcat", node: <Pic src="/stickers/boomcat.webp" w={584} h={600} /> },
+  { id: "rocker", at: [0.64, 0.02], atPhone: [0, 0], rot: 7, cls: "stk-photo stk-rocker", node: <Pic src="/stickers/rocker.webp" w={408} h={600} /> },
+  { id: "fedora", at: [0.99, 0.48], atPhone: [0, 0], rot: 5, cls: "stk-photo stk-fedora", node: <Pic src="/stickers/fedora.webp" w={391} h={600} /> },
+  { id: "jensen", at: [0.16, 0.6], atPhone: [0, 0], rot: -3, cls: "stk-photo stk-jensen", node: <Pic src="/stickers/jensen.webp" w={600} h={360} /> },
+  { id: "crylaugh", at: [0.19, 0.3], atPhone: [0.86, 0.36], rot: 12, cls: "stk-photo stk-crylaugh", node: <Pic src="/stickers/crylaugh.webp" w={582} h={600} />, phone: true },
+  { id: "cement", at: [0.66, 0.61], atPhone: [0, 0], rot: 4, cls: "stk-photo stk-cement", node: <Pic src="/stickers/cement.webp" w={600} h={575} /> },
+  { id: "ps3", at: [0.54, 0.58], atPhone: [0, 0], rot: -6, cls: "stk-photo stk-ps3", node: <Pic src="/stickers/ps3.webp" w={600} h={352} /> },
+  { id: "pulley", at: [0.89, 0.14], atPhone: [0, 0], rot: -8, cls: "stk-photo stk-pulley", node: <Pic src="/stickers/pulley.webp" w={480} h={600} /> },
+  { id: "bbq", at: [0.42, 0.57], atPhone: [0, 0], rot: 3, cls: "stk-photo stk-bbq", node: <Pic src="/stickers/bbq.webp" w={505} h={600} /> },
+  { id: "monkey", at: [0.47, 0.0], atPhone: [0, 0], rot: -6, cls: "stk-photo stk-monkey", node: <Pic src="/stickers/monkey.webp" w={497} h={550} /> },
 ];
 
 export default function Stickers() {

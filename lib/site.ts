@@ -18,7 +18,7 @@ export const profile = {
   location: "",
   // Optional: a short line about what you are up to right now, shown under the big title
   // as "CURRENTLY: …". Example: "revising for exams". Leave "" to hide it.
-  status: "GOONING IT CRAZY STYLE",
+  status: "looking for bill gates THE CUNT",
 };
 
 export type Social = {
@@ -74,13 +74,18 @@ export const drink = {
 //   { src: "/gallery/beach.jpg", caption: "Beach, June" },
 // Any number works – the layout adapts. Caption is optional. Newest first looks nice.
 // While this list is empty, the gallery shows a small "photos soon" note.
-export type Photo = { src: string; caption?: string };
-export const gallery: Photo[] = [];
+// Videos work too: { src: "/gallery/clip.mp4", poster: "/gallery/clip.jpg", video: true }
+export type Photo = { src: string; caption?: string; video?: boolean; poster?: string };
+const clip = (n: number): Photo => {
+  const id = `v${String(n).padStart(2, "0")}`;
+  return { src: `/gallery/${id}.mp4`, poster: `/gallery/${id}.jpg`, video: true };
+};
+export const gallery: Photo[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(clip);
 
 export const navLinks = [
   { href: "#home", label: "Home" },
   { href: "#music", label: "Music" },
   { href: "#top", label: "Top" },
-  { href: "#gallery", label: "Photos" },
+  { href: "#gallery", label: "Gallery" },
   { href: "#connect", label: "Socials" },
 ];

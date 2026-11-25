@@ -89,14 +89,23 @@ export default function SpotifyCard() {
   const [recent, setRecent] = useState<RecentRes | null>(null);
   const [progress, setProgress] = useState(0);
 
+  // "Now playing" comes from LiveStatus (it already checks every 30 s), so this card
+  // doesn't ask Spotify a second time.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<NowPlayingRes>).detail;
+      setNow(d);
+      setProgress(d.progressMs ?? 0);
+    };
+    window.addEventListener("zt-nowplaying", on);
+    return () => window.removeEventListener("zt-nowplaying", on);
+  }, []);
+  // one extra check when a song ends (the server answers from its 10 s memory if it can)
   const loadNow = useCallback(async () => {
     try {
       const d = (await (await fetch("/api/spotify/now-playing")).json()) as NowPlayingRes;
-      setNow(d);
-      setProgress(d.progressMs ?? 0);
-    } catch {
-      setNow({ state: "error" });
-    }
+      window.dispatchEvent(new CustomEvent("zt-nowplaying", { detail: d }));
+    } catch {}
   }, []);
 
   const loadRecent = useCallback(async () => {
@@ -107,20 +116,12 @@ export default function SpotifyCard() {
     }
   }, []);
 
-  // Check Spotify every 15 s (recent list every 60 s), only while the tab is visible.
+  // Recent list every 2 min, only while the tab is visible.
   useEffect(() => {
-    loadNow();
     loadRecent();
-    const a = setInterval(() => !document.hidden && loadNow(), 15_000);
-    const b = setInterval(() => !document.hidden && loadRecent(), 60_000);
-    const onVisible = () => !document.hidden && (loadNow(), loadRecent());
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearInterval(a);
-      clearInterval(b);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [loadNow, loadRecent]);
+    const b = setInterval(() => !document.hidden && loadRecent(), 120_000);
+    return () => clearInterval(b);
+  }, [loadRecent]);
 
   // Move the progress bar smoothly between checks.
   const duration = now?.track?.durationMs ?? 0;

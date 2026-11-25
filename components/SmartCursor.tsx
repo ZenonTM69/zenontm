@@ -12,7 +12,7 @@ function labelFor(el: Element | null): string {
   if (el.closest(".vinyl")) return "SCRATCH";
   if (el.closest(".wall-tile")) return "OPEN ↗";
   if (el.closest(".dither")) return "LOOK";
-  if (el.closest(".big-title")) return "STRETCH";
+  if (el.closest(".big-title")) return "GRAB";
   if (el.closest(".ht-solid")) return "HI :)";
   if (el.closest(".social-copy, button[aria-label^='Copy']")) return "COPY";
   if (el.closest("a[target='_blank']")) return "OPEN ↗";

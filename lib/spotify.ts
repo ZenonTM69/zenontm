@@ -149,9 +149,13 @@ function saveBlocks() {
   } catch {}
 }
 
+// Spotify's limit is for the whole app (all endpoints together, and the live site and a
+// local test copy share it), so one "slow down" pauses EVERY request, not just that one.
+const ALL = "*";
+
 async function spotifyGet<T>(path: string, retry = true): Promise<T | null> {
   const endpoint = path.split("?")[0];
-  const until = blockedUntil.get(endpoint) ?? 0;
+  const until = Math.max(blockedUntil.get(ALL) ?? 0, blockedUntil.get(endpoint) ?? 0);
   if (until > Date.now()) throw new SpotifyError("busy", until);
   const token = await accessToken();
   const res = await fetch(`${API}${path}`, {
@@ -166,7 +170,7 @@ async function spotifyGet<T>(path: string, retry = true): Promise<T | null> {
   if (res.status === 429) {
     const wait = Number(res.headers.get("retry-after")) || 60;
     const until = Date.now() + wait * 1000;
-    blockedUntil.set(endpoint, until);
+    blockedUntil.set(ALL, until);
     saveBlocks();
     console.warn(`Spotify asked us to slow down on ${endpoint} for ${Math.round(wait / 60)} min.`);
     throw new SpotifyError("busy", until);
@@ -235,7 +239,15 @@ export type NowPlaying =
   | { playing: false }
   | { playing: true; isPlaying: boolean; progressMs: number; track: SpotifyTrack };
 
+// While testing on your own computer, remember answers longer: the local copy uses the same
+// Spotify quota as the live site, and a dev server reloads a lot.
+const DEV = process.env.NODE_ENV !== "production";
+
 export async function getNowPlaying(): Promise<NowPlaying> {
+  // one answer per 10 s per server (30 s locally), however many visitors are asking
+  return remember("now", DEV ? 30_000 : 10_000, loadNowPlaying);
+}
+async function loadNowPlaying(): Promise<NowPlaying> {
   const data = await spotifyGet<{
     is_playing: boolean;
     progress_ms: number | null;
@@ -269,7 +281,7 @@ async function remember<T>(key: string, maxAgeMs: number, load: () => Promise<T>
 }
 
 export async function getRecentlyPlayed(limit = 20) {
-  return remember(`recent:${limit}`, 60_000, () => loadRecentlyPlayed(limit));
+  return remember(`recent:${limit}`, DEV ? 300_000 : 60_000, () => loadRecentlyPlayed(limit));
 }
 async function loadRecentlyPlayed(limit: number) {
   const data = await spotifyGet<{ items: { track: RawTrack; played_at: string }[] }>(
